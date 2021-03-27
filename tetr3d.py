@@ -83,37 +83,7 @@ class CalcMesh:
 gmsh.initialize()
 
 # Считаем STL
-try:
-    path = os.path.dirname(os.path.abspath(__file__))
-    gmsh.merge(os.path.join(path, 't13_data.stl'))
-except:
-    print("Could not load STL mesh: bye!")
-    gmsh.finalize()
-    exit(-1)
-
-# Восстановим геометрию
-angle = 40
-forceParametrizablePatches = False
-includeBoundary = True
-curveAngle = 180
-gmsh.model.mesh.classifySurfaces(angle * math.pi / 180., includeBoundary, forceParametrizablePatches, curveAngle * math.pi / 180.)
-gmsh.model.mesh.createGeometry()
-
-# Зададим объём по считанной поверхности
-s = gmsh.model.getEntities(2)
-l = gmsh.model.geo.addSurfaceLoop([s[i][1] for i in range(len(s))])
-gmsh.model.geo.addVolume([l])
-
-gmsh.model.geo.synchronize()
-
-# Зададим мелкость желаемой сетки
-f = gmsh.model.mesh.field.add("MathEval")
-gmsh.model.mesh.field.setString(f, "F", "4")
-gmsh.model.mesh.field.setAsBackgroundMesh(f)
-
-# Построим сетку
-gmsh.model.mesh.generate(3)
-
+gmsh.open("t13.msh")
 # Теперь извлечём из gmsh данные об узлах сетки
 nodeTags, nodesCoord, parametricCoord = gmsh.model.mesh.getNodes()
 
@@ -144,5 +114,6 @@ assert(len(tetrsNodesTags) % 4 == 0)
 
 mesh = CalcMesh(nodesCoord, tetrsNodesTags)
 mesh.snapshot(0)
-
 gmsh.finalize()
+
+
