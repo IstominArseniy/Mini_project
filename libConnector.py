@@ -16,13 +16,17 @@ def read_msh_file(file_name):
     elementTypes, elementTags, elementNodeTags = gmsh.model.mesh.getElements()
     # elementTypes - вектор, показывающий, какие типы элементов вообще есть (и в каком порядке лежат в следующих массивах)
     # elementsTags - массив массивов тэгов соответствующих элементов(элемент - штука из nodes)
-    # elementNodeTags - массив массивов тэгов нод, соответствующих элементам (тупо подряд: количество элементов * нод на элемент)
+    # elementNodeTags - массив массивов тэгов нод, соответствующих элементам (подряд: количество элементов * нод на элемент)
     # извлечем данные об отрезках в массив tetrNodeTags
     for i in range(len(elementTypes)):
         if elementTypes[i] == GMSH_TETR_CODE:
             tetrNodeTags = elementNodeTags[i]
             break
     # теперь в tetrNodeTags лежат подряд 4ки тэгов нод, образующих тетраэдры
+    # создадим словарь соответствия порядкового номера в nodeTags и самих nodeTags
+    meshIds = {}
+    for i in range(len(nodeTags)):
+        meshIds[nodeTags[i]] = i
     # создадим и заполним словарь nodeConnection: nodeConnection[i] = [ноды, с которыми соединена данная]
     nodeConnections = {}
     for i in nodeTags:
@@ -31,7 +35,7 @@ def read_msh_file(file_name):
         for j in range(4):
             for k in range(4):
                 if k != j:
-                    nodeConnections[tetrNodeTags[i + k]].add(tetrNodeTags[i + j])
+                    nodeConnections[tetrNodeTags[i + k]].add(meshIds[tetrNodeTags[i + j]])
     # создадим и заполним словарь nodeCoordinates: nodeCoordinates[i] = [x_i, y_i, z_i]
     nodeCoordinates = {}
     # for i in range(0, len(nodeTags)):
@@ -42,20 +46,14 @@ def read_msh_file(file_name):
     # print(nodeCoordinates)
     gmsh.finalize()
     mesh = Mesh(len(nodeTags))
-    # создадим словарь соответствия порядкового номера в nodeTags и самих nodeTags
-    meshIds = {}
-    for i in range(len(nodeTags)):
-        meshIds[nodeTags[i]] = i
     # заполним mesh.tetrList
-    print(meshIds)
-    for i in range(0, int(len(tetrNodeTags) / 4), 4):
-        j = int(i / 4)
-        mesh.tetrList.append([meshIds[tetrNodeTags[j]], meshIds[tetrNodeTags[j + 1]], meshIds[tetrNodeTags[j + 2]], meshIds[tetrNodeTags[j + 3]]])
-    print(mesh.tetrList)
+    for i in range(0, len(tetrNodeTags), 4):
+        mesh.tetrList.append([meshIds[tetrNodeTags[i]], meshIds[tetrNodeTags[i + 1]], meshIds[tetrNodeTags[i + 2]], meshIds[tetrNodeTags[i + 3]]])
     for i in range(len(nodeTags)):
         mesh.nodeInitialCoordinates[i] = nodeCoordinates[nodeTags[i]]
         mesh.nodeCoordinates[i] = nodeCoordinates[nodeTags[i]]
         mesh.nodeConnections[i] = list(nodeConnections[nodeTags[i]])
+    print(nodeConnections)
     return mesh
 
 
@@ -68,13 +66,15 @@ def makeVTKSnapshot(mesh, snapNumber):
     unstructuredGrid = vtk.vtkUnstructuredGrid()
     points = vtk.vtkPoints()
     velocities = vtk.vtkDoubleArray()
+    velocities.SetNumberOfComponents(3)
     velocities.SetName("velocities")
     accelerations = vtk.vtkDoubleArray()
+    accelerations.SetNumberOfComponents(3)
     accelerations.SetName("accelerations")
     for i in range(mesh.nodeNumber):
         points.InsertNextPoint(mesh.nodeCoordinates[i][0], mesh.nodeCoordinates[i][1], mesh.nodeCoordinates[i][2])
-        velocities.InsertNextTouple(mesh.nodeVelocities[i][0], mesh.nodeVelocities[i][1], mesh.nodeVelocities[i][2])
-        accelerations.InsertNextTouple(mesh.nodeAccelerations[i][0], mesh.nodeAccelerations[i][1], mesh.nodeAccelerations[i][2])
+        velocities.InsertNextTuple((mesh.nodeVelocities[i][0], mesh.nodeVelocities[i][1], mesh.nodeVelocities[i][2]))
+        accelerations.InsertNextTuple((mesh.nodeAccelerations[i][0], mesh.nodeAccelerations[i][1], mesh.nodeAccelerations[i][2]))
     # добавление точек и полей в сетку
     unstructuredGrid.SetPoints(points)
     unstructuredGrid.GetPointData().AddArray(velocities)
@@ -91,4 +91,4 @@ def makeVTKSnapshot(mesh, snapNumber):
     writer.SetFileName("model" + str(snapNumber) + ".vtu")
     writer.Write()
 
-read_msh_file("cube.msh")
+#  read_msh_file("cube.msh")
