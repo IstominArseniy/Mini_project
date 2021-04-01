@@ -1,13 +1,8 @@
 from libConnector import*
-
-
-class Mesh:
-    def __init__(self):
-        self.nodeConnections = []
-        self.nodeCoordinates = []
-        self.nodeVelocities = []
-        self.nodeAccelerations = []
+from MeshClass import Mesh
 
 
 def main():
-    pass
+    model = read_msh_file("cube.msh")
+    makeVTKSnapshot(model, 0)
+

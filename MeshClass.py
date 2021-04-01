@@ -6,6 +6,7 @@ class Mesh:
         self.nodeCoordinates = [[0.0, 0.0, 0.0] for i in range(nodeNumber)]
         self.nodeVelocities = [[0.0, 0.0, 0.0] for i in range(nodeNumber)]
         self.nodeAccelerations = [[0.0, 0.0, 0.0] for i in range(nodeNumber)]
+        self.tetrList = []
         self.k = 1
         self.b = 0.1
         self.m = 1
